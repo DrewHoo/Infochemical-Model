@@ -10,6 +10,7 @@ import repast.simphony.engine.schedule.ScheduledMethod;
 import repast.simphony.query.space.grid.GridCell;
 import repast.simphony.query.space.grid.GridCellNgh;
 import repast.simphony.random.RandomHelper;
+import repast.simphony.space.SpatialException;
 import repast.simphony.space.grid.Grid;
 import repast.simphony.space.grid.GridPoint;
 import repast.simphony.util.ContextUtils;
@@ -26,9 +27,9 @@ import repast.simphony.valueLayer.BufferedGridValueLayer.Buffer;
  * 
  * @author Drew Hoover
  */
+@SuppressWarnings("unused")
 public class Heatbug {
 
-  private double unhappiness = 0;
   private int tolerance, outputHeat;
   private double stubbornness;
   private BufferedGridValueLayer heat;
@@ -48,63 +49,45 @@ public class Heatbug {
 
   @ScheduledMethod(start = 1, interval = 1, priority = 0)
   public void step() {
-    GridPoint pt = grid.getLocation(this);
+    GridPoint pt = grid.getLocation(this), desiredPt, coolestPt;
     //if at destination, do something
-    if (pt.getCoord(0) == destination.getCoord(0) && pt.getCoord(1) == destination.getCoord(1)) {
+    if (pt.getX() == destination.getX() && pt.getY() == destination.getY()) {
     	Context<Object> context = ContextUtils.getContext(this);
+    	System.out.println("destination found");
     	context.remove(this);
     	return;
     }
+    double angleToDestination = getAngle(pt.getX(), pt.getY(), destination.getX(), destination.getY());
     double heatHere = heat.get(pt.getX(), pt.getY());
-    if (heatHere < tolerance) {
-      unhappiness = 0;
+    if (heatHere > tolerance) { //calculate desiredPt based on coolestPt & destination
+    	desiredPt = findClosestAcceptablePoint(angleToDestination);
     } else {
-      unhappiness = (double) (heatHere - tolerance) / ValueLayerDiffuser.DEFAULT_MAX;
+    	desiredPt = pickSpotBasedOnAngle(angleToDestination);
     }
-
-    GridPoint newLocation = new GridPoint(pt.getX(), pt.getY());
-    if (unhappiness != 0) {
-    	
-    	
-      AbstractGridFunction func = heatHere < tolerance ? new MaxGridFunction() : new MinGridFunction();
-      heat.forEach(func, pt, Buffer.READ, 1, 1);
-      GridPoint coolestPt = func.getResults().get(0).getLocation();
-      GridPoint thisSpot = grid.getLocation(this);
-      double toCoolest = getAngleToDestination(coolestPt.getCoord(0), coolestPt.getCoord(1), 
-    		  thisSpot.getCoord(0), thisSpot.getCoord(1));
-      double toDestination = getAngleToDestination(destination.getCoord(0), destination.getCoord(1),
-    		  thisSpot.getCoord(0), thisSpot.getCoord(1));
-      double newDirection = (stubbornness*toDestination + toCoolest*(1 - stubbornness)) / 2;
-      GridPoint desiredPt = pickSpotBasedOnAngle(newDirection);
-      
-      
-      // not on the hottest or coldest place at the moment
-      // then try to move to the desired point, if that's full then
-      // choose one of the 8 neighboring cells at random.
-      if (!desiredPt.equals(pt)) {
-        int x = desiredPt.getX();
-        int y = desiredPt.getY();
-        int tries = 0;
-        //trying to move to an unoccupied space
-        while (grid.getObjectAt(x, y) != null && tries < 10) {
-          x = newLocation.getX() + RandomHelper.nextIntFromTo(-1, 1);
-          y = newLocation.getY() + RandomHelper.nextIntFromTo(-1, 1);
-          tries++;
-        }
-
-        if (tries < 10) {
-          newLocation = new GridPoint(x, y);
-        }
-      }
-    } else { //move toward destination
-    	
-    }
-
-    //System.out.printf("current heat val: %f%n", heat.get(pt.getX(), pt.getY()));
-    //System.out.println("outputting heat: " + outputHeat);
     heat.set(outputHeat + heat.get(pt.getX(), pt.getY()), pt.getX(), pt.getY());
-    grid.moveTo(this, newLocation.getX(), newLocation.getY());
+    try {
+    	grid.moveTo(this, desiredPt.getX(), desiredPt.getY());
+    } catch (SpatialException e) {}
   }
+
+	private GridPoint findClosestAcceptablePoint(double angle) {
+		double compromiseAngle = angle, angInc = Math.PI/4, lowestHeat = Integer.MAX_VALUE, heatHere;
+		GridPoint bestCompromise, pointOfLowestHeat = grid.getLocation(this);
+		for(int i = 1; i <= 8; i++) {
+			angInc *= -1;
+			compromiseAngle += angInc;
+			bestCompromise = pickSpotBasedOnAngle(compromiseAngle);
+			try {heatHere = heat.get(bestCompromise.getX(), bestCompromise.getY());}
+			catch (SpatialException e) {continue;}
+			if (heatHere < lowestHeat) {
+				pointOfLowestHeat = bestCompromise;
+				lowestHeat = heatHere;
+			}
+			if (heatHere <= tolerance) {return bestCompromise;}
+			angInc = (i % 2 == 0) ? angInc + Math.PI/4 : angInc;
+		}
+		return pointOfLowestHeat;
+}
 
 	public GridPoint getDestination() {
 		return destination;
@@ -114,35 +97,47 @@ public class Heatbug {
 		this.destination = destination;
 	}
 	/*
-	 * x1/y1 is always destination; x2/y1 is always current location
+	 * x1/y1 is always current location ; x2/y2 is always destination
+	 * compensates for atan2() by returning only positive values between 0, 2pi
 	 */
-	public double getAngleToDestination(int x1, int y1, int x2, int y2) {
-		return Math.atan2(x1 - x2, y1 - y2);
+	public double getAngle(int x1, int y1, int x2, int y2) {
+		if (x1 == x2) {
+			return (y1 > y2) ? 3*Math.PI/2 : Math.PI/2;
+		}
+		if (y1 == y2) {
+			return (x1 > x2) ? Math.PI : 0;
+		}
+		double angle = Math.atan2(y1 - y2, x1 - x2);
+		return (angle < 0) ? angle + Math.PI*2 : angle;
 	}
 	/*
-	 * should be in Radians
+	 * angle should be in Radians
 	 */
 	public GridPoint pickSpotBasedOnAngle(double angle) {
+//		angle = (angle < 0) ? angle += Math.PI*2 : angle;
 		int spot = Math.round((float)(angle/Math.PI)*4);
-		int thisX = grid.getLocation(this).getCoord(0);
-		int thisY = grid.getLocation(this).getCoord(1);
+		int x = grid.getLocation(this).getX();
+		int y = grid.getLocation(this).getY();
 		switch (spot) {
 			case 0:
-				return new GridPoint(thisX + 1, thisY);
+			case 8:
+				return new GridPoint(x + 1, y);
 			case 1:
-				return new GridPoint(thisX + 1, thisY + 1);
+				return new GridPoint(x + 1, y + 1);
 			case 2:
-				return new GridPoint(thisX, thisY + 1);
+				return new GridPoint(x, y + 1);
 			case 3:
-				return new GridPoint(thisX - 1, thisY + 1);
+				return new GridPoint(x - 1, y + 1);
 			case 4:
-				return new GridPoint(thisX - 1, thisY);
+				return new GridPoint(x - 1, y);
 			case 5:
-				return new GridPoint(thisX - 1, thisY - 1);
+				return new GridPoint(x - 1, y - 1);
 			case 6:
-				return new GridPoint(thisX, thisY - 1);
+				return new GridPoint(x, y - 1);
+			case 7:
+				return new GridPoint(x + 1, y - 1);
 			default:
-				return new GridPoint(thisX + 1, thisY - 1);
+				return new GridPoint(x, y);
 		}		
 	}
 }
