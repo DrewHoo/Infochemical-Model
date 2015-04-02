@@ -52,16 +52,19 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
     
   }
   
+  /**
+   * 
+   */
   @ScheduledMethod(start = 1, interval = 1, priority = 0)
   public void addBugs() {
 	  if (this.size() <= numAgents) {
 	    	GridPoint destination, startPoint;
 	    	if (++nextInt % 2 == 0) {
-	      	  destination = new GridPoint(boardXDim - 1, 100); //horizontal stream
-	      	  startPoint = new GridPoint(1, 100);
+	      	  destination = new GridPoint(boardXDim - 1, boardYDim/2); //horizontal stream
+	      	  startPoint = new GridPoint(1, boardYDim/2);
 	        } else {
-	      	  destination = new GridPoint(100, boardYDim - 1); //vertical stream
-	      	  startPoint = new GridPoint(100, 1);
+	      	  destination = new GridPoint(boardXDim/2, boardYDim - 1); //vertical stream
+	      	  startPoint = new GridPoint(boardXDim/2, 1);
 	        }
 	        Heatbug bug = new Heatbug(
 	        		RandomHelper.nextIntFromTo(minICTolerance, maxICTolerance),
