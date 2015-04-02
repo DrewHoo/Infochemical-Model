@@ -48,15 +48,14 @@ public class Heatbug {
   }
 
   @ScheduledMethod(start = 1, interval = 1, priority = 0)
+  /**
+   * 
+   * @throws SpatialException if an out-of-bounds point on grid or gridValueLayer is accessed
+   */
   public void step() {
     GridPoint pt = grid.getLocation(this), desiredPt, coolestPt;
-    //if at destination, do something
-    if (pt.getX() == destination.getX() && pt.getY() == destination.getY()) {
-    	Context<Object> context = ContextUtils.getContext(this);
-    	System.out.println("destination found");
-    	context.remove(this);
-    	return;
-    }
+    if (arrivedAtDestination(pt)) return;
+    
     double angleToDestination = getAngle(pt.getX(), pt.getY(), destination.getX(), destination.getY());
     double heatHere = heat.get(pt.getX(), pt.getY());
     if (heatHere > tolerance) { //calculate desiredPt based on coolestPt & destination
@@ -70,23 +69,42 @@ public class Heatbug {
     } catch (SpatialException e) {}
   }
 
-	private GridPoint findClosestAcceptablePoint(double angle) {
-		double compromiseAngle = angle, angInc = Math.PI/4, lowestHeat = Integer.MAX_VALUE, heatHere;
-		GridPoint bestCompromise, pointOfLowestHeat = grid.getLocation(this);
-		for(int i = 1; i <= 8; i++) {
-			angInc *= -1;
-			compromiseAngle += angInc;
-			bestCompromise = pickSpotBasedOnAngle(compromiseAngle);
-			try {heatHere = heat.get(bestCompromise.getX(), bestCompromise.getY());}
-			catch (SpatialException e) {continue;}
-			if (heatHere < lowestHeat) {
-				pointOfLowestHeat = bestCompromise;
-				lowestHeat = heatHere;
-			}
-			if (heatHere <= tolerance) {return bestCompromise;}
-			angInc = (i % 2 == 0) ? angInc + Math.PI/4 : angInc;
+/**
+ * @param pt
+ */
+private boolean arrivedAtDestination(GridPoint pt) {
+	if (pt.getX() == destination.getX() && pt.getY() == destination.getY()) {
+    	Context<Object> context = ContextUtils.getContext(this);
+    	System.out.println("destination found");
+    	context.remove(this);
+    	return true;
+    }
+	return false;
+}
+/**
+ * 			
+ * @param 	angle is the ideal angle at which agent would like to travel.
+ * 			angle should be in radians. 
+ * @return	the GridPoint in the Moore neighborhood that is closest to being on
+ * 			the path that the angle represents.
+ */
+private GridPoint findClosestAcceptablePoint(double angle) {
+	double mooreRadianIncrement = Math.PI/4, lowestHeat = Integer.MAX_VALUE, heatHere;
+	int count = 0;
+	GridPoint bestCompromise, pointOfLowestHeat = grid.getLocation(this);
+	for(int i = 1; i <= 8; i++) {
+		mooreRadianIncrement *= -1;
+		angle += mooreRadianIncrement * count;
+		bestCompromise = pickSpotBasedOnAngle(angle);
+		try {heatHere = heat.get(bestCompromise.getX(), bestCompromise.getY());}
+		catch (SpatialException e) {continue;}
+		if (heatHere < lowestHeat) {
+			pointOfLowestHeat = bestCompromise;
+			lowestHeat = heatHere;
 		}
-		return pointOfLowestHeat;
+		if (heatHere <= tolerance) {return bestCompromise;}
+	}
+	return pointOfLowestHeat;
 }
 
 	public GridPoint getDestination() {
@@ -110,8 +128,11 @@ public class Heatbug {
 		double angle = Math.atan2(y1 - y2, x1 - x2);
 		return (angle < 0) ? angle + Math.PI*2 : angle;
 	}
-	/*
-	 * angle should be in Radians
+	/**
+	 * @param 	angle should be in radians
+	 * @return 	GridPoint that a line extending from current point at the
+	 * 			indicated angle would intersect (said differently: 
+	 * 			translates angle into a point in the moore neighborhood)			
 	 */
 	public GridPoint pickSpotBasedOnAngle(double angle) {
 //		angle = (angle < 0) ? angle += Math.PI*2 : angle;
