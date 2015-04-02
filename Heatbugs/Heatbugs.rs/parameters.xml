@@ -14,13 +14,13 @@
 		/>
 				
 		<parameter name="emissionRate" displayName="IC Emission Rate" type="java.lang.Integer" 
-						defaultValue="2000" 
+						defaultValue="3000" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 									
 		/>
 				<parameter name="minICTolerance" displayName="Minimum IC Tolerance" type="java.lang.Integer" 
-						defaultValue="8000" 
+						defaultValue="3000" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 									
@@ -38,19 +38,19 @@
 									
 		/>
 		<parameter name="evaporationConstant" displayName="Evaporation Factor" type="java.lang.Float" 
-						defaultValue="0.999"
+						defaultValue="1"
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$FloatConverter"
 									
 		/>
 		<parameter name="boardXDim" displayName="Board X Dimension" type="java.lang.Integer" 
-						defaultValue="200" 
+						defaultValue="100" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 									
 		/>
 		<parameter name="boardYDim" displayName="Board Y Dimension" type="java.lang.Integer" 
-						defaultValue="200" 
+						defaultValue="100" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 									
