@@ -3,24 +3,16 @@
  */
 package repast.model.heatbugs;
 
-import java.util.List;
+import java.util.Iterator;
 
 import repast.simphony.context.Context;
 import repast.simphony.engine.schedule.ScheduledMethod;
-import repast.simphony.query.space.grid.GridCell;
-import repast.simphony.query.space.grid.GridCellNgh;
-import repast.simphony.random.RandomHelper;
+import repast.simphony.query.space.grid.MooreQuery;
 import repast.simphony.space.SpatialException;
 import repast.simphony.space.grid.Grid;
 import repast.simphony.space.grid.GridPoint;
 import repast.simphony.util.ContextUtils;
-import repast.simphony.util.SimUtilities;
-import repast.simphony.valueLayer.AbstractGridFunction;
 import repast.simphony.valueLayer.BufferedGridValueLayer;
-import repast.simphony.valueLayer.MaxGridFunction;
-import repast.simphony.valueLayer.MinGridFunction;
-import repast.simphony.valueLayer.ValueLayerDiffuser;
-import repast.simphony.valueLayer.BufferedGridValueLayer.Buffer;
 
 /**
  * Based on Nick Collier's heatbugs model
@@ -35,6 +27,7 @@ public class Heatbug {
   private BufferedGridValueLayer heat;
   private Grid<Heatbug> grid;
   private GridPoint destination;
+  private int[][] offsets = new int[8][2];
 
   @SuppressWarnings("unchecked")
   public Heatbug(int tolerance, int outputHeat, double stubbornness, GridPoint destination, Context<Heatbug> context) {
@@ -42,6 +35,14 @@ public class Heatbug {
     this.outputHeat = outputHeat;
     this.destination = destination;
     this.stubbornness = stubbornness;
+    offsets[0] = new int[]{1,0};
+    offsets[1] = new int[]{1,1};
+    offsets[2] = new int[]{0,1};
+    offsets[3] = new int[]{-1,1};
+    offsets[4] = new int[]{-1,0};
+    offsets[5] = new int[]{-1,-1};
+    offsets[6] = new int[]{0,-1};
+    offsets[7] = new int[]{1,-1};
     
     heat = (BufferedGridValueLayer) context.getValueLayer("Heat Layer");
     grid = (Grid<Heatbug>) context.getProjection("Bug Grid");
@@ -53,34 +54,25 @@ public class Heatbug {
    * @throws SpatialException if an out-of-bounds point on grid or gridValueLayer is accessed
    */
   public void step() {
-    GridPoint pt = grid.getLocation(this), desiredPt, coolestPt;
+    GridPoint pt = grid.getLocation(this);
     if (arrivedAtDestination(pt)) return;
-    
-    double angleToDestination = getAngle(pt.getX(), pt.getY(), destination.getX(), destination.getY());
-    double heatHere = heat.get(pt.getX(), pt.getY());
-    if (heatHere > tolerance) { //calculate desiredPt based on coolestPt & destination
-    	desiredPt = findClosestAcceptablePoint(angleToDestination);
-    } else {
-    	desiredPt = pickSpotBasedOnAngle(angleToDestination);
-    }
+    //the order of these two is probably important.
     heat.set(outputHeat + heat.get(pt.getX(), pt.getY()), pt.getX(), pt.getY());
-    try {
-    	grid.moveTo(this, desiredPt.getX(), desiredPt.getY());
-    } catch (SpatialException e) {}
+    double angle = getAngle(pt.getX(), pt.getY(), destination.getX(), destination.getY());
+    moveToClosestAcceptablePoint(angle);
   }
 
-/**
- * @param pt
- */
-private boolean arrivedAtDestination(GridPoint pt) {
-	if (pt.getX() == destination.getX() && pt.getY() == destination.getY()) {
-    	Context<Object> context = ContextUtils.getContext(this);
-    	System.out.println("destination found");
-    	context.remove(this);
-    	return true;
-    }
-	return false;
-}
+	/**
+	 * @param pt
+	 */
+	private boolean arrivedAtDestination(GridPoint pt) {
+		if (pt.getX() == destination.getX() && pt.getY() == destination.getY()) {
+	    	Context<Object> context = ContextUtils.getContext(this);
+	    	context.remove(this);
+	    	return true;
+	    }
+		return false;
+	}
 /**
  * 			
  * @param 	angle is the ideal angle at which agent would like to travel.
@@ -88,25 +80,72 @@ private boolean arrivedAtDestination(GridPoint pt) {
  * @return	the GridPoint in the Moore neighborhood that is closest to being on
  * 			the path that the angle represents.
  */
-private GridPoint findClosestAcceptablePoint(double angle) {
-	double mooreRadianIncrement = Math.PI/4, lowestHeat = Integer.MAX_VALUE, heatHere;
-	int count = 0;
-	GridPoint bestCompromise, pointOfLowestHeat = grid.getLocation(this);
-	for(int i = 1; i <= 8; i++) {
-		mooreRadianIncrement *= -1;
-		angle += mooreRadianIncrement * count;
-		bestCompromise = pickSpotBasedOnAngle(angle);
-		try {heatHere = heat.get(bestCompromise.getX(), bestCompromise.getY());}
-		catch (SpatialException e) {continue;}
-		if (heatHere < lowestHeat) {
-			pointOfLowestHeat = bestCompromise;
-			lowestHeat = heatHere;
+	private void moveToClosestAcceptablePoint(double angle) {
+		double mooreRadianIncrement = Math.PI/4, lowestHeatAmount = Integer.MAX_VALUE, heatHere, heatTest;
+		GridPoint nextPt, lowestHeatPoint = grid.getLocation(this), current = grid.getLocation(this);
+		boolean moved = false, neighborsTooHot = true;
+		// mooreRadianInc should be negative if angleToDestination is less than angleToMooreNeighbor
+		// to ensure that the forloop checks closest moore neighbor first
+		mooreRadianIncrement *= ( angle > getAngle(current.getX(), current.getY(), 
+					pickSpotBasedOnAngle(angle).getX(), pickSpotBasedOnAngle(angle).getY())) 
+			? 1 : -1;
+		//check to see that agent is not surrounded by neighbors with heat > threshold
+		//if this is true, I'm still not sure of appropriate action for agent;
+		//this current algorithm, of allowing agent to ignore heat causes strange behavior
+		for (int i = 0; i < 8; i++) {
+			try { heatTest = heat.get(current.getX() + offsets[i][0], current.getY() + offsets[i][1]); }
+			catch (SpatialException e) {continue;}
+			if (heatTest <= tolerance) {
+				neighborsTooHot = false;
+				break;
+			}
 		}
-		if (heatHere <= tolerance) {return bestCompromise;}
+		for (int i = 0; i < 8; i++) {
+			mooreRadianIncrement = -mooreRadianIncrement;
+			angle += (mooreRadianIncrement * i);
+			nextPt = pickSpotBasedOnAngle(angle);
+			try {heatHere = heat.get(nextPt.getX(), nextPt.getY());}
+			catch (SpatialException e) {
+	//			System.out.println("Spatial Exception " + i + " " + bestCompromise.getX() + " " + bestCompromise.getY());
+				continue;
+			}
+			
+	//		if (grid.getRandomObjectAt(nextPt.getX(), nextPt.getY()) != null) {
+	//			System.out.println("Current: " + current.getX() + " " + current.getY() + "\tDest: " + nextPt.getX() + " " + nextPt.getY() + " is occupied.");
+	//			continue;
+	//		}
+			
+			//if you find a spot with less heat than tolerance threshold, go there
+			try {
+				if (heatHere <= tolerance || neighborsTooHot) {
+	//				printPathInfo(current, nextPt, angle);
+					if (grid.moveTo(this, nextPt.getX(), nextPt.getY())) {
+						moved = true;
+					}
+	//					System.out.println(moved);
+				} else {
+					System.out.println("heatHere > tolerance");
+				}
+			} catch (SpatialException e) {} //{System.out.println(e.toString());}
+			if (moved) break;
+			//if every spot is above tolerance, go to spot with least heat
+			if (heatHere < lowestHeatAmount) {
+				lowestHeatPoint = nextPt;
+				lowestHeatAmount = heatHere;
+			}
+		}
+		return;
 	}
-	return pointOfLowestHeat;
-}
-
+	public void printPathInfo(GridPoint current, GridPoint nextPt, double angle) {
+		System.out.print("Current: " + current.getX() + " " + current.getY() + "\tDest: "
+				+ nextPt.getX() + " " + nextPt.getY());
+		System.out.printf("\tangle: %2.2f", angle);
+		System.out.print("\tfDest: " + destination.getX() + " " + destination.getY());
+		double dif = getAngle(current.getX(), current.getY(), nextPt.getX(), nextPt.getY())
+				- getAngle(current.getX(), current.getY(), destination.getX(), destination.getY());
+		System.out.printf("\tDifference from first choice: %2.2f", dif);
+		System.out.print("\tSuccessful: ");
+	}
 	public GridPoint getDestination() {
 		return destination;
 	}
@@ -120,13 +159,17 @@ private GridPoint findClosestAcceptablePoint(double angle) {
 	 */
 	public double getAngle(int x1, int y1, int x2, int y2) {
 		if (x1 == x2) {
-			return (y1 > y2) ? 3*Math.PI/2 : Math.PI/2;
+			return (y2 > y1) ? Math.PI/2.0 : 3.0*Math.PI/2.0 ;
 		}
 		if (y1 == y2) {
-			return (x1 > x2) ? Math.PI : 0;
+			return (x2 > x1) ? 0 : Math.PI;
 		}
-		double angle = Math.atan2(y1 - y2, x1 - x2);
-		return (angle < 0) ? angle + Math.PI*2 : angle;
+		double angle = Math.atan2(y2 - y1, x2 - x1);
+		while (angle < 0) {angle += Math.PI*2;}
+		while (angle > Math.PI*2) {angle -= Math.PI*2;}
+		if (angle < 0 || angle > 2*Math.PI)
+			System.out.printf("angle: %2.2f%n", angle);
+		return angle;
 	}
 	/**
 	 * @param 	angle should be in radians
@@ -135,29 +178,32 @@ private GridPoint findClosestAcceptablePoint(double angle) {
 	 * 			translates angle into a point in the moore neighborhood)			
 	 */
 	public GridPoint pickSpotBasedOnAngle(double angle) {
-//		angle = (angle < 0) ? angle += Math.PI*2 : angle;
-		int spot = Math.round((float)(angle/Math.PI)*4);
+		double fourOverPi = 4.0 / Math.PI;
+		while (angle < 0) {angle += Math.PI*2;}
+		while (angle > Math.PI*2) {angle -= Math.PI*2;}
+		int spot = (int) Math.round(angle*fourOverPi);
 		int x = grid.getLocation(this).getX();
 		int y = grid.getLocation(this).getY();
 		switch (spot) {
 			case 0:
 			case 8:
-				return new GridPoint(x + 1, y);
+				return new GridPoint(x + 1	, y);
 			case 1:
-				return new GridPoint(x + 1, y + 1);
+				return new GridPoint(x + 1	, y + 1);
 			case 2:
-				return new GridPoint(x, y + 1);
+				return new GridPoint(x		, y + 1);
 			case 3:
-				return new GridPoint(x - 1, y + 1);
+				return new GridPoint(x - 1	, y + 1);
 			case 4:
-				return new GridPoint(x - 1, y);
+				return new GridPoint(x - 1	, y);
 			case 5:
-				return new GridPoint(x - 1, y - 1);
+				return new GridPoint(x - 1	, y - 1);
 			case 6:
-				return new GridPoint(x, y - 1);
+				return new GridPoint(x		, y - 1);
 			case 7:
-				return new GridPoint(x + 1, y - 1);
+				return new GridPoint(x + 1	, y - 1);
 			default:
+				System.out.println("default: " + spot);
 				return new GridPoint(x, y);
 		}		
 	}
