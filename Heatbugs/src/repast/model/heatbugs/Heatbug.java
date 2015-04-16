@@ -86,9 +86,13 @@ public class Heatbug {
 		boolean moved = false, neighborsTooHot = true;
 		// mooreRadianInc should be negative if angleToDestination is less than angleToMooreNeighbor
 		// to ensure that the forloop checks closest moore neighbor first
-		mooreRadianIncrement *= ( angle > getAngle(current.getX(), current.getY(), 
-					pickSpotBasedOnAngle(angle).getX(), pickSpotBasedOnAngle(angle).getY())) 
-			? 1 : -1;
+		double angleToMoore = getAngle(current.getX(), current.getY(), 
+				pickSpotBasedOnAngle(angle).getX(), pickSpotBasedOnAngle(angle).getY());
+		if (Math.abs(angle - angleToMoore) < 0.01) {
+			mooreRadianIncrement *= (Math.random() > 0.5) ? 1 : -1;
+		} else {
+			mooreRadianIncrement *= ( angle > angleToMoore) ? 1 : -1;
+		}
 		//check to see that agent is not surrounded by neighbors with heat > threshold
 		//if this is true, I'm still not sure of appropriate action for agent;
 		//this current algorithm, of allowing agent to ignore heat causes strange behavior
