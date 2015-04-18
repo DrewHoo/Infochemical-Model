@@ -21,9 +21,9 @@ import repast.simphony.valueLayer.ValueLayerDiffuser;
  * @author Drew Hoover
  */
 public class HeatbugContext extends DefaultContext<Heatbug> {
-  
+  private Logger logger;
   private ValueLayerDiffuser diffuser;
-  private int numAgents, minICTolerance, maxICTolerance, emissionRate, boardXDim, boardYDim, nextInt;
+  private int numAgents, minICTolerance, maxICTolerance, emissionRate, boardXDim, boardYDim, nextInt, agentsPerTick;
   private double stubbornnessMax, stubbornnessMin;
   private float diffusionConstant, evaporationConstant;
   private repast.simphony.space.grid.Grid grid;
@@ -33,12 +33,15 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
    */
   @Override
   public void addValueLayer(ValueLayer valueLayer) {
-    // TODO Auto-generated method stub
     super.addValueLayer(valueLayer);
     diffuser = new ValueLayerDiffuser((IGridValueLayer) valueLayer, evaporationConstant, diffusionConstant, false);
-    //= new ValueLayerDiffuser((IGridValueLayer)valueLayer, .99, 1.0, true);
   }
 
+  
+  @ScheduledMethod(start = 0, interval = 0, priority = 0)
+  public void recordRunInfo() {
+	  //add params here
+  }
   /**
    * Swaps the buffered heat layers.
    */
@@ -49,7 +52,11 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
     BufferedGridValueLayer gridvl = (BufferedGridValueLayer)getValueLayer("Heat Layer");
     gridvl.swap();
     diffuser.diffuse();
-    
+  }
+  
+  @ScheduledMethod(start = 100, interval = 100, priority = 0)
+  public void record() {
+	  logger.dumpInfo();
   }
   
   /**
@@ -57,7 +64,7 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
    */
   @ScheduledMethod(start = 1, interval = 1, priority = 0)
   public void addBugs() {
-	  if (this.size() <= numAgents) {
+	  for (int i = 0; i < agentsPerTick; i++) {
 	    	GridPoint destination, startPoint;
 	    	if (++nextInt % 2 == 0) {
 	      	  destination = new GridPoint(boardXDim - 1, boardYDim/2); //horizontal stream
@@ -77,7 +84,8 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	    			startPoint = new GridPoint(startPoint.getX() + 1, startPoint.getY());
 	    		} else {startPoint = new GridPoint(startPoint.getX(), startPoint.getY() + 1);}
 	    	}
-	    }
+		}
+		
   }
   
   public void setDiffuser(ValueLayerDiffuser diffuser) {
@@ -91,14 +99,23 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	    emissionRate = (Integer)params.getValue("emissionRate");
 	    stubbornnessMax = (Double)params.getValue("stubbornnessMax");
 	    stubbornnessMin = (Double)params.getValue("stubbornnessMin");
-	    numAgents = (Integer)params.getValue("initialNumAgents");
 	    diffusionConstant = (float)params.getValue("diffusionConstant");
 	    evaporationConstant = (float)params.getValue("evaporationConstant");
 	    boardXDim = (Integer)params.getValue("boardXDim");
 	    boardYDim = (Integer)params.getValue("boardYDim");
+	    agentsPerTick = (Integer)params.getValue("agentsPerTick");
 	    nextInt = 0;
 	    grid = (Grid) this.getProjection("Bug Grid");
   }
   
+  public void setLogger(Logger logger) {
+	  this.logger = logger;
+  }
+  public void feedLogger(String s) {
+	  logger.eat(s);
+  }
+  public void setDirectory(String s) {
+	  logger.setDirectory(s);
+  }
 
 }

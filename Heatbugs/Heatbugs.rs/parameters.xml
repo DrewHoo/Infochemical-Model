@@ -1,72 +1,91 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <parameters>
-					<parameter name="randomSeed" displayName="Default Random Seed" type="int" 
-						defaultValue="__NULL__"
+				<parameter name="BatchNumber" displayName="Batch Number" type="java.lang.Integer" 
+						defaultValue="0" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 									
 		/>
-				<parameter name="initialNumAgents" displayName="Number of Agents" type="java.lang.Integer" 
-						defaultValue="500" 
-						isReadOnly="false" 
-						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
-									
-		/>
-				
-		<parameter name="emissionRate" displayName="IC Emission Rate" type="java.lang.Integer" 
+				<parameter name="emissionRate" displayName="IC Emission Rate" type="java.lang.Integer" 
 						defaultValue="3000" 
+						isReadOnly="false" 
+						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
+									
+		/>
+				<parameter name="agentsPerTick" displayName="Agents Added Per Tick" type="java.lang.Integer" 
+						defaultValue="2" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 									
 		/>
 				<parameter name="minICTolerance" displayName="Minimum IC Tolerance" type="java.lang.Integer" 
-						defaultValue="3000" 
+						defaultValue="10000" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 									
 		/>
 				<parameter name="maxICTolerance" displayName="Maximum IC Tolerance" type="java.lang.Integer" 
-						defaultValue="8000" 
-						isReadOnly="false"
-						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
-									
-		/>
-		<parameter name="diffusionConstant" displayName="Diffusion Factor" type="java.lang.Float" 
-						defaultValue="1" 
-						isReadOnly="false" 
-						converter="repast.simphony.parameter.StringConverterFactory$FloatConverter"
-									
-		/>
-		<parameter name="evaporationConstant" displayName="Evaporation Factor" type="java.lang.Float" 
-						defaultValue="1"
-						isReadOnly="false" 
-						converter="repast.simphony.parameter.StringConverterFactory$FloatConverter"
-									
-		/>
-		<parameter name="boardXDim" displayName="Board X Dimension" type="java.lang.Integer" 
-						defaultValue="100" 
+						defaultValue="20000" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 									
 		/>
-		<parameter name="boardYDim" displayName="Board Y Dimension" type="java.lang.Integer" 
-						defaultValue="100" 
-						isReadOnly="false" 
-						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
-									
-		/>
-		<parameter name="stubbornnessMax" displayName="Max Stubbornness" type="java.lang.Double" 
-						defaultValue="1" 
+
+				<parameter name="stubbornnessMin" displayName="Min Stubbornness" type="java.lang.Double" 
+						defaultValue="0.0" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$DoubleConverter"
 									
 		/>
-		<parameter name="stubbornnessMin" displayName="Min Stubbornness" type="java.lang.Double" 
-						defaultValue="0" 
+				<parameter name="minOutputTemp" displayName="Minimum Output Temp" type="java.lang.Integer" 
+						defaultValue="3000" 
+						isReadOnly="false" 
+						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
+									
+		/>
+				<parameter name="maxOutputTemp" displayName="Maximum Output Temp" type="java.lang.Integer" 
+						defaultValue="10000" 
+						isReadOnly="false" 
+						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
+									
+		/>
+				<parameter name="evaporationConstant" displayName="Evaporation Factor" type="java.lang.Float" 
+						defaultValue="0.99" 
+						isReadOnly="false" 
+						converter="repast.simphony.parameter.StringConverterFactory$FloatConverter"
+									
+		/>
+				<parameter name="diffusionConstant" displayName="Diffusion Factor" type="java.lang.Float" 
+						defaultValue="1.0" 
+						isReadOnly="false" 
+						converter="repast.simphony.parameter.StringConverterFactory$FloatConverter"
+									
+		/>
+				<parameter name="randomSeed" displayName="Default Random Seed" type="int" 
+						defaultValue="__NULL__"
+						isReadOnly="false" 
+						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
+									
+		/>
+				<parameter name="boardYDim" displayName="Board Y Dimension" type="java.lang.Integer" 
+						defaultValue="200" 
+						isReadOnly="false" 
+						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
+									
+		/>
+				<parameter name="boardXDim" displayName="Board X Dimension" type="java.lang.Integer" 
+						defaultValue="200" 
+						isReadOnly="false" 
+						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
+									
+		/>
+				<parameter name="stubbornnessMax" displayName="Max Stubbornness" type="java.lang.Double" 
+						defaultValue="1.0" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$DoubleConverter"
 									
 		/>
+				
 				
 		</parameters>
 

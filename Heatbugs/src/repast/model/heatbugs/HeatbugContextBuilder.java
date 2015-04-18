@@ -10,18 +10,11 @@ import repast.simphony.dataLoader.ContextBuilder;
 import repast.simphony.engine.environment.RunEnvironment;
 import repast.simphony.engine.schedule.ScheduledMethod;
 import repast.simphony.parameter.Parameters;
-import repast.simphony.random.RandomHelper;
-import repast.simphony.space.continuous.NdPoint;
 import repast.simphony.space.grid.Grid;
 import repast.simphony.space.grid.GridBuilderParameters;
-import repast.simphony.space.grid.GridPoint;
 import repast.simphony.space.grid.RandomGridAdder;
-import repast.simphony.space.grid.SimpleGridAdder;
-import repast.simphony.space.grid.StickyBorders;
 import repast.simphony.space.grid.StrictBorders;
-import repast.simphony.space.grid.WrapAroundBorders;
 import repast.simphony.valueLayer.BufferedGridValueLayer;
-import repast.simphony.valueLayer.ValueLayerDiffuser;
 
 /**
  * @author Drew Hoover
@@ -44,6 +37,7 @@ public class HeatbugContextBuilder implements ContextBuilder<Heatbug> {
     		new int[]{boardXDim, boardYDim}, new int[]{0,0});
     ((HeatbugContext) context).addParameters();
     context.addValueLayer(heat);
+    ((HeatbugContext) context).setLogger(new Logger((String) "Batch " + (Integer)params.getValue("BatchNumber"), "/Users/DrewHoo/Desktop/ABMDIC/Infochemical-Model/Heatbugs/data/"));
     return context;
   }
   

@@ -4,6 +4,7 @@
 package repast.model.heatbugs;
 
 import repast.simphony.context.Context;
+import repast.simphony.context.DefaultContext;
 import repast.simphony.engine.schedule.ScheduledMethod;
 import repast.simphony.space.SpatialException;
 import repast.simphony.space.grid.Grid;
@@ -12,7 +13,6 @@ import repast.simphony.util.ContextUtils;
 import repast.simphony.valueLayer.AbstractGridFunction;
 import repast.simphony.valueLayer.BufferedGridValueLayer;
 import repast.simphony.valueLayer.BufferedGridValueLayer.Buffer;
-import repast.simphony.valueLayer.MaxGridFunction;
 import repast.simphony.valueLayer.MinGridFunction;
 
 /**
@@ -22,8 +22,8 @@ import repast.simphony.valueLayer.MinGridFunction;
  */
 @SuppressWarnings("unused")
 public class Heatbug {
-
-  private int tolerance, outputHeat;
+  private int tolerance, outputHeat, lifetime, initialDistance, travelDistance;
+  private long cumulativeTemperature;
   private double stubbornness;
   private BufferedGridValueLayer heat;
   private Grid<Heatbug> grid;
@@ -37,21 +37,30 @@ public class Heatbug {
     this.outputHeat = outputHeat;
     this.destination = destination;
     this.stubbornness = stubbornness;
+    lifetime = 0;
+    travelDistance = 0;
+    cumulativeTemperature = 0;
     offsets = new int[][]{{1,0},{1,1},{0,1},{-1,1},{-1,0},{-1,-1},{0,-1},{1,-1}};
     collisions = 0;
     heat = (BufferedGridValueLayer) context.getValueLayer("Heat Layer");
     grid = (Grid<Heatbug>) context.getProjection("Bug Grid");
   }
 
+  @ScheduledMethod(start = 1, interval = 0, priority = 0)
+  public void recordStartInfo() {
+	  initialDistance = getDistance(grid.getLocation(this), destination);
+  }
+  
   @ScheduledMethod(start = 1, interval = 1, priority = 0)
   /**
    * In order to make testing easier, I'm trying to move logic that involves
    * getting information directly from the Context, Grid, or GridValueLayer in here.
    * That way we can run unit tests on individual Heatbug methods without relying on a particular
    * instance of a context.
-   * @throws SpatialException if an out-of-bounds point on grid or gridValueLayer is accessed
+   * 
    */
   public void step() {
+	lifetime++;
     GridPoint pt = grid.getLocation(this);
     if (arrivedAtDestination(pt)) {
     	report();
@@ -59,6 +68,7 @@ public class Heatbug {
     	context.remove(this);
     	return;
     }
+    cumulativeTemperature += heat.get(pt.getX(), pt.getY());
 //    the order of setting the heat and moveToClosestAcceptablePoint is probably important.
     heat.set(outputHeat + heat.get(pt.getX(), pt.getY()), pt.getX(), pt.getY());
     if (isItTooHot()) {
@@ -69,12 +79,26 @@ public class Heatbug {
   }
 
 	/**
-	 * @param pt
+	 * @param GridPoint pt is the current point to check against
+	 * the destination point, which is the attribute of heatbug
 	 */
 	private boolean arrivedAtDestination(GridPoint pt) {
 		return (pt.getX() == destination.getX() && pt.getY() == destination.getY()) ? true : false;
 	}
+	
+	/**
+	 * Sends information about this Heatbug to Logger
+	 * @param int collisions
+	 * @param double average heat
+	 * @param int lifespan
+	 * @param 
+	 */
 	private void report() {
+		DefaultContext<Heatbug> context = (HeatbugContext) ContextUtils.getContext(this);
+		//format is lifetime, initial distance to goal, distance traveled, collisions, avg temp, tolerance
+		String s = "" + lifetime + "," + initialDistance + "," + travelDistance + "," + collisions
+				+ "," + (cumulativeTemperature/lifetime) + "," + tolerance + "\n"; 
+		((HeatbugContext) context).feedLogger(s);
 		return;
 	}
 	/*
@@ -112,9 +136,13 @@ public class Heatbug {
 		}
 		if(!grid.moveTo(this, lowestHeatPt.getX(), lowestHeatPt.getY())) {
 			collisions++;
-		}
+		} else {travelDistance++;}
 	}
-	
+	/**
+	 * 
+	 * @return true if every neighbor is hotter than tolerance.
+	 * 
+	 */
 	private boolean isItTooHot() {
 		AbstractGridFunction func = new MinGridFunction();
 	    heat.forEach(func, grid.getLocation(this), Buffer.READ, 1, 1);
@@ -148,6 +176,7 @@ public class Heatbug {
 				if (heatHere <= tolerance) {
 					if (!grid.moveTo(this, nextPt.getX(), nextPt.getY()))
 						collisions++;
+					else {travelDistance++;}
 					moved = true;
 				}
 			} catch (SpatialException e) {}
@@ -170,6 +199,12 @@ public class Heatbug {
 	
 	public void setDestination(GridPoint destination) {
 		this.destination = destination;
+	}
+	
+	public int getDistance(GridPoint current, GridPoint dest) {
+		int x = current.getX() - dest.getX();
+		int y = current.getY() - dest.getY();
+		return (int) Math.round(Math.sqrt(x*x + y*y));
 	}
 	/*
 	 * x1/y1 is always current location ; x2/y2 is always destination
