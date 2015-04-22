@@ -2,8 +2,6 @@
  * 
  */
 package repast.model.heatbugs;
-
-import repast.simphony.context.DefaultContext;
 import repast.simphony.engine.environment.RunEnvironment;
 import repast.simphony.engine.schedule.ScheduledMethod;
 import repast.simphony.parameter.Parameters;
@@ -16,6 +14,8 @@ import repast.simphony.valueLayer.IGridValueLayer;
 import repast.simphony.valueLayer.ValueLayer;
 import repast.simphony.valueLayer.ValueLayerDiffuser;
 
+import repast.simphony.context.DefaultContext;
+
 /**
  * Based on Nick Collier's heatbugs model
  * 
@@ -25,7 +25,7 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
   private Logger logger;
   private ValueLayerDiffuser diffuser;
   private int numAgents, minICTolerance, maxICTolerance, emissionRate, boardXDim, boardYDim, nextInt, agentsPerTick;
-  private double stubbornnessMax, stubbornnessMin;
+  private double stubbornnessMax, stubbornnessMin, pathSpread;
   private float diffusionConstant, evaporationConstant;
   private repast.simphony.space.grid.Grid grid;
   
@@ -68,11 +68,15 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	  for (int i = 0; i < agentsPerTick; i++) {
 	    	GridPoint destination, startPoint;
 	    	if (++nextInt % 2 == 0) {
-	      	  destination = new GridPoint(boardXDim - 1, (int)(boardYDim*Math.random())); //horizontal stream
-	      	  startPoint = new GridPoint(1, (int)(Math.random()*boardYDim));
+	    		int y = (int) (boardYDim*pathSpread);
+	    		int offset = (int) ((1-pathSpread)/2.0*boardYDim);
+	    		destination = new GridPoint(boardXDim - 1, (int)(Math.random()*y + offset)); //horizontal stream
+    			startPoint = new GridPoint(1, (int)(Math.random()*y + offset));
 	        } else {
-	      	  destination = new GridPoint((int)(boardXDim*Math.random()), boardYDim - 1); //vertical stream
-	      	  startPoint = new GridPoint((int)(Math.random()*boardXDim), 1);
+	    		int x = (int) (boardXDim*pathSpread);
+	    		int offset = (int) ((1-pathSpread)/2.0*boardXDim);
+				destination = new GridPoint((int)(Math.random()*x + offset), boardYDim - 1); //vertical stream
+	      	  	startPoint = new GridPoint((int)(Math.random()*x + offset), 1);
 	        }
 	        Heatbug bug = new Heatbug(
 	        		RandomHelper.nextIntFromTo(minICTolerance, maxICTolerance),
@@ -81,14 +85,17 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	        		destination, this);
 	    	this.add(bug);
 	   boolean moved = false;
-	    while (!moved) {
+	   //Eventually need to update this so that only spots within path 
+	   //(as determined by pathSpread) are tried
+	   for (int j = 0; !moved && j < boardXDim*pathSpread; j++) {
 	    	try {
-	    		moved = grid.moveTo(bug, startPoint.getX(), startPoint.getY()) ? true : false; 
-	    		if (startPoint.getX() == 1) {
-	    			startPoint = new GridPoint(1, (int)(Math.random()*boardYDim));
-	    		} else {
-	    			startPoint = new GridPoint((int)(Math.random()*boardXDim), 1);
-	    		}
+	    		moved = grid.moveTo(bug, startPoint.getX(), startPoint.getY());
+	    		if (!moved)
+		    		if (startPoint.getX() == 1) {
+		    			startPoint = new GridPoint(1, (int)(Math.random()*boardYDim));
+		    		} else {
+		    			startPoint = new GridPoint((int)(Math.random()*boardXDim), 1);
+		    		}
 	    	} catch (SpatialException e) {}
 	    }
 	  }
@@ -111,6 +118,7 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	    boardYDim = (Integer)params.getValue("boardYDim");
 	    agentsPerTick = (Integer)params.getValue("agentsPerTick");
 	    nextInt = 0;
+	    pathSpread = (Double)params.getValue("pathSpread");
 	    grid = (Grid) this.getProjection("Bug Grid");
   }
   
