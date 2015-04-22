@@ -8,6 +8,7 @@ import repast.simphony.engine.environment.RunEnvironment;
 import repast.simphony.engine.schedule.ScheduledMethod;
 import repast.simphony.parameter.Parameters;
 import repast.simphony.random.RandomHelper;
+import repast.simphony.space.SpatialException;
 import repast.simphony.space.grid.Grid;
 import repast.simphony.space.grid.GridPoint;
 import repast.simphony.valueLayer.BufferedGridValueLayer;
@@ -67,11 +68,11 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	  for (int i = 0; i < agentsPerTick; i++) {
 	    	GridPoint destination, startPoint;
 	    	if (++nextInt % 2 == 0) {
-	      	  destination = new GridPoint(boardXDim - 1, boardYDim/2); //horizontal stream
-	      	  startPoint = new GridPoint(1, boardYDim/2);
+	      	  destination = new GridPoint(boardXDim - 1, (int)(boardYDim*Math.random())); //horizontal stream
+	      	  startPoint = new GridPoint(1, (int)(Math.random()*boardYDim));
 	        } else {
-	      	  destination = new GridPoint(boardXDim/2, boardYDim - 1); //vertical stream
-	      	  startPoint = new GridPoint(boardXDim/2, 1);
+	      	  destination = new GridPoint((int)(boardXDim*Math.random()), boardYDim - 1); //vertical stream
+	      	  startPoint = new GridPoint((int)(Math.random()*boardXDim), 1);
 	        }
 	        Heatbug bug = new Heatbug(
 	        		RandomHelper.nextIntFromTo(minICTolerance, maxICTolerance),
@@ -79,13 +80,18 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	        		RandomHelper.nextDoubleFromTo(stubbornnessMin, stubbornnessMax),
 	        		destination, this);
 	    	this.add(bug);
-	    	while(!grid.moveTo(bug, startPoint.getX(), startPoint.getY())){
-	    		if (startPoint.getX() > startPoint.getY()) {
-	    			startPoint = new GridPoint(startPoint.getX() + 1, startPoint.getY());
-	    		} else {startPoint = new GridPoint(startPoint.getX(), startPoint.getY() + 1);}
-	    	}
-		}
-		
+	   boolean moved = false;
+	    while (!moved) {
+	    	try {
+	    		moved = grid.moveTo(bug, startPoint.getX(), startPoint.getY()) ? true : false; 
+	    		if (startPoint.getX() == 1) {
+	    			startPoint = new GridPoint(1, (int)(Math.random()*boardYDim));
+	    		} else {
+	    			startPoint = new GridPoint((int)(Math.random()*boardXDim), 1);
+	    		}
+	    	} catch (SpatialException e) {}
+	    }
+	  }
   }
   
   public void setDiffuser(ValueLayerDiffuser diffuser) {
