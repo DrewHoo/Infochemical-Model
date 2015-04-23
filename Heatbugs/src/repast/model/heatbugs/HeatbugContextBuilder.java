@@ -8,6 +8,8 @@ import repast.simphony.context.space.grid.GridFactory;
 import repast.simphony.context.space.grid.GridFactoryFinder;
 import repast.simphony.dataLoader.ContextBuilder;
 import repast.simphony.engine.environment.RunEnvironment;
+import repast.simphony.engine.schedule.ISchedule;
+import repast.simphony.engine.schedule.ScheduleParameters;
 import repast.simphony.engine.schedule.ScheduledMethod;
 import repast.simphony.parameter.Parameters;
 import repast.simphony.space.grid.Grid;
@@ -38,6 +40,10 @@ public class HeatbugContextBuilder implements ContextBuilder<Heatbug> {
     ((HeatbugContext) context).addParameters();
     context.addValueLayer(heat);
     ((HeatbugContext) context).setLogger(new Logger((String) "Batch " + (Integer)params.getValue("BatchNumber"), "/Users/DrewHoo/Desktop/ABMDIC/Infochemical-Model/Heatbugs/data/"));
+    ISchedule schedule = RunEnvironment.getInstance().getCurrentSchedule();
+	ScheduleParameters sp1 = ScheduleParameters.createPoissonProbabilityRepeating((Double)params.getValue("poissonMean"),
+			(Double)params.getValue("poissonMeanRepeating"), 1);
+	schedule.schedule(sp1, context, "addBugs");
     return context;
   }
   

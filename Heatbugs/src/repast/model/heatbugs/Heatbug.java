@@ -22,9 +22,8 @@ import repast.simphony.valueLayer.MinGridFunction;
  */
 @SuppressWarnings("unused")
 public class Heatbug {
-  private int tolerance, outputHeat, lifetime, initialDistance, travelDistance;
+  private int tolerance, emissionStrength, lifetime, initialDistance, travelDistance;
   private long cumulativeTemperature;
-  private double stubbornness;
   private BufferedGridValueLayer heat;
   private Grid<Heatbug> grid;
   private GridPoint destination;
@@ -32,11 +31,10 @@ public class Heatbug {
   private int collisions;
 
   @SuppressWarnings("unchecked")
-  public Heatbug(int tolerance, int outputHeat, double stubbornness, GridPoint destination, Context<Heatbug> context) {
+  public Heatbug(int tolerance, int emissionStrength, GridPoint destination, Context<Heatbug> context) {
     this.tolerance = tolerance;
-    this.outputHeat = outputHeat;
+    this.emissionStrength = emissionStrength;
     this.destination = destination;
-    this.stubbornness = stubbornness;
     lifetime = 0;
     travelDistance = 0;
     cumulativeTemperature = 0;
@@ -70,12 +68,13 @@ public class Heatbug {
     }
     cumulativeTemperature += heat.get(pt.getX(), pt.getY());
 //    the order of setting the heat and moveToClosestAcceptablePoint is probably important.
-    heat.set(outputHeat + heat.get(pt.getX(), pt.getY()), pt.getX(), pt.getY());
     if (isItTooHot()) {
     	getOutOfTheHeat();
     } else {
     	moveToBestMoorePoint();
     }
+    pt = grid.getLocation(this);
+    heat.set(emissionStrength + heat.get(pt.getX(), pt.getY()), pt.getX(), pt.getY());
   }
 
 	/**

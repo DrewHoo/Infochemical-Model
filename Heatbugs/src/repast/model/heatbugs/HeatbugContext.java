@@ -23,11 +23,13 @@ import repast.simphony.context.DefaultContext;
  */
 public class HeatbugContext extends DefaultContext<Heatbug> {
   private Logger logger;
-  private ValueLayerDiffuser diffuser;
-  private int numAgents, minICTolerance, maxICTolerance, emissionRate, boardXDim, boardYDim, nextInt, agentsPerTick;
-  private double stubbornnessMax, stubbornnessMin, pathSpread;
-  private float diffusionConstant, evaporationConstant;
+  private ValueLayerDiffuser evaporator, propagator;
+  private int 		cleanupRate, boardXDim, boardYDim, nextInt,
+  					agentsPerTick, tick = 0, evaporationRate, propagationRate;
+  private double 	pathSpread, emissionStrength, propagationFactor, 
+  					evaporationFactor, minTolerance, maxTolerance, minimumStrength;
   private repast.simphony.space.grid.Grid grid;
+  private IGridValueLayer heat;
   
   /* (non-Javadoc)
    * @see repast.simphony.context.AbstractContext#addValueLayer(repast.simphony.valueLayer.ValueLayer)
@@ -35,7 +37,9 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
   @Override
   public void addValueLayer(ValueLayer valueLayer) {
     super.addValueLayer(valueLayer);
-    diffuser = new ValueLayerDiffuser((IGridValueLayer) valueLayer, evaporationConstant, diffusionConstant, false);
+    heat = (IGridValueLayer) valueLayer;
+    propagator = new ValueLayerDiffuser((IGridValueLayer) valueLayer, 1, propagationFactor, false);
+    evaporator = new ValueLayerDiffuser((IGridValueLayer) valueLayer, 1 - evaporationFactor, 0, false);
   }
 
   
@@ -49,10 +53,20 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
   @SuppressWarnings("unchecked")
 // priority = -1 so that the heatbugs action occurs first
   @ScheduledMethod(start = 1, interval = 1, priority = -1)
-  public void swap() {
+  public void aggregate() {
     BufferedGridValueLayer gridvl = (BufferedGridValueLayer)getValueLayer("Heat Layer");
     gridvl.swap();
-    diffuser.diffuse();
+    if (tick++ % evaporationRate == 0)
+    	evaporator.diffuse();
+    if (tick % propagationRate == 0)
+    	propagator.diffuse();
+    if (tick % cleanupRate == 0)
+    	for (int i = 0; i < boardXDim; i++) {
+    		for (int j = 0; j < boardYDim; j++) {
+    			if (Double.compare(heat.get(i,j), minimumStrength) < 0)
+    				heat.set(0,i,j);
+    		}
+    	}
   }
   
   @ScheduledMethod(start = 100, interval = 100, priority = 0)
@@ -63,7 +77,6 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
   /**
    * 
    */
-  @ScheduledMethod(start = 1, interval = 1, priority = 0)
   public void addBugs() {
 	  for (int i = 0; i < agentsPerTick; i++) {
 	    	GridPoint destination, startPoint;
@@ -79,9 +92,8 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	      	  	startPoint = new GridPoint((int)(Math.random()*x + offset), 1);
 	        }
 	        Heatbug bug = new Heatbug(
-	        		RandomHelper.nextIntFromTo(minICTolerance, maxICTolerance),
-	        		emissionRate,
-	        		RandomHelper.nextDoubleFromTo(stubbornnessMin, stubbornnessMax),
+	        		RandomHelper.nextIntFromTo((int)minTolerance, (int)maxTolerance),
+	        		(int)emissionStrength,
 	        		destination, this);
 	    	this.add(bug);
 	   boolean moved = false;
@@ -101,25 +113,27 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	  }
   }
   
-  public void setDiffuser(ValueLayerDiffuser diffuser) {
-	  this.diffuser = diffuser;
-  }
+//  public void setDiffuser(ValueLayerDiffuser diffuser) {
+//	  this.diffuser = diffuser;
+//  }
   
   public void addParameters() {
 	  	Parameters params = RunEnvironment.getInstance().getParameters();
-	  	minICTolerance = (Integer)params.getValue("minICTolerance");
-	    maxICTolerance = (Integer)params.getValue("maxICTolerance");
-	    emissionRate = (Integer)params.getValue("emissionRate");
-	    stubbornnessMax = (Double)params.getValue("stubbornnessMax");
-	    stubbornnessMin = (Double)params.getValue("stubbornnessMin");
-	    diffusionConstant = (float)params.getValue("diffusionConstant");
-	    evaporationConstant = (float)params.getValue("evaporationConstant");
+	  	minTolerance = (Double)params.getValue("minTolerance")*Short.MAX_VALUE;
+	    maxTolerance = (Double)params.getValue("maxTolerance")*Short.MAX_VALUE;
+	    emissionStrength = (Double)params.getValue("emissionStrength")*Short.MAX_VALUE;
+	    minimumStrength = (Double)params.getValue("minimumStrength")*Short.MAX_VALUE;
+	    propagationFactor = (Double)params.getValue("propagationFactor");
+	    propagationRate = (Integer)params.getValue("propagationRate");
+	    evaporationFactor = (Double)params.getValue("evaporationFactor");
+	    evaporationRate = (Integer)params.getValue("evaporationRate");
 	    boardXDim = (Integer)params.getValue("boardXDim");
 	    boardYDim = (Integer)params.getValue("boardYDim");
 	    agentsPerTick = (Integer)params.getValue("agentsPerTick");
 	    nextInt = 0;
 	    pathSpread = (Double)params.getValue("pathSpread");
 	    grid = (Grid) this.getProjection("Bug Grid");
+	    cleanupRate = (Integer)params.getValue("cleanupRate");
   }
   
   public void setLogger(Logger logger) {
