@@ -1,0 +1,7 @@
+#binary files
+*.class
+git-credential-osxkeychain
+Heatbugs/data/
+Heatbugs/bin/
+
+Heatbugs/Heatbugs.rs/parameters_backup.xml
