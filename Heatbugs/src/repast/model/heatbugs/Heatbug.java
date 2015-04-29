@@ -49,7 +49,7 @@ public class Heatbug {
 	  initialDistance = getDistance(grid.getLocation(this), destination);
   }
   
-  @ScheduledMethod(start = 1, interval = 1, priority = 0)
+  
   /**
    * In order to make testing easier, I'm trying to move logic that involves
    * getting information directly from the Context, Grid, or GridValueLayer in here.
@@ -57,6 +57,7 @@ public class Heatbug {
    * instance of a context.
    * 
    */
+  @ScheduledMethod(start = 1, interval = 1, priority = 0)
   public void step() {
 	lifetime++;
     GridPoint pt = grid.getLocation(this);
@@ -68,15 +69,24 @@ public class Heatbug {
     }
     cumulativeTemperature += heat.get(pt.getX(), pt.getY());
 //    the order of setting the heat and moveToClosestAcceptablePoint is probably important.
-    if (isItTooHot()) {
-    	getOutOfTheHeat();
-    } else {
-    	moveToBestMoorePoint();
-    }
-    pt = grid.getLocation(this);
-    heat.set(emissionStrength + heat.get(pt.getX(), pt.getY()), pt.getX(), pt.getY());
+    if (isItTooHot()) getOutOfTheHeat();
+    else moveToBestMoorePoint();
+    
+    GridPoint newPt = grid.getLocation(this);
+    heat.set(emissionStrength + heat.get(newPt.getX(), newPt.getY()), newPt.getX(), newPt.getY());
+    updateBlock(pt, newPt);
   }
-
+  
+  
+  	private void updateBlock(GridPoint oldPt, GridPoint newPt) {
+//  		if (oldPt.getX() == newPt.getX() 
+//  				&& oldPt.getY() == newPt.getY()
+//  				|| oldPt.getX() > boardDim - blockSize + 1
+//  				|| oldPt.getX() < blockSize - 1)
+//  			return;
+//  		if (oldPt.getX() % (blockSize - 1) < 2 && newPt.getX() % 
+  	}
+  
 	/**
 	 * @param GridPoint pt is the current point to check against
 	 * the destination point, which is the attribute of heatbug

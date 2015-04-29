@@ -5,3 +5,5 @@ Heatbugs/data/
 Heatbugs/bin/
 
 Heatbugs/Heatbugs.rs/parameters_backup.xml
+Heatbugs/debug.log
+Heatbugs/velocity.log.1

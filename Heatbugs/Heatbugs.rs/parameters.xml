@@ -83,16 +83,11 @@
 						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 									
 		/>
-				<parameter name="boardYDim" displayName="Board Y Dimension" type="java.lang.Integer" 
-						defaultValue="200" 
+				<parameter name="boardDim" displayName="Board Dimension" type="java.lang.Integer" 
+						defaultValue="256" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 									
-		/>
-				<parameter name="boardXDim" displayName="Board X Dimension" type="java.lang.Integer" 
-						defaultValue="200" 
-						isReadOnly="false" 
-						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 		/>
 		<parameter name="poissonMean" displayName="Poisson Mean" type="java.lang.Double" 
 						defaultValue="10" 
@@ -105,7 +100,17 @@
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$DoubleConverter"
 									
-		/>				
+		/>
+		<parameter name="blockSize" displayName="Block Size" type="java.lang.Integer"
+						defaultValue="16"
+						isReadOnly="false"
+						converter="repast.simphony.parameter.StringConverterFactor$IntConverter"
+		/>
+		<parameter name="congestionLimit" displayName="Congestion Limit" type="java.lang.Integer"
+						defaultValue="16"
+						isReadOnly="false"
+						converter="repast.simphony.parameter.StringConverterFactor$IntConverter"
+		/>
 				
 		</parameters>
 

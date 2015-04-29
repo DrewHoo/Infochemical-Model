@@ -29,14 +29,13 @@ public class HeatbugContextBuilder implements ContextBuilder<Heatbug> {
    */
   public Context<Heatbug> build(Context<Heatbug> context) {
 	Parameters params = RunEnvironment.getInstance().getParameters();
-	int boardXDim = (Integer)params.getValue("boardXDim");
-	int boardYDim = (Integer)params.getValue("boardYDim");
+	int boardDim = (Integer)params.getValue("boardDim");
 	GridFactory gridFactory = GridFactoryFinder.createGridFactory(null);
 	Grid<Heatbug> grid = gridFactory.createGrid("Bug Grid", context, 
 			new GridBuilderParameters<Heatbug>(new StrictBorders(), 
-			new RandomGridAdder<Heatbug>(), false, new int[]{boardXDim, boardYDim}, new int[]{0, 0}));
+			new RandomGridAdder<Heatbug>(), false, new int[]{boardDim, boardDim}, new int[]{0, 0}));
     BufferedGridValueLayer heat = new BufferedGridValueLayer("Heat Layer", 0, true, new StrictBorders(), 
-    		new int[]{boardXDim, boardYDim}, new int[]{0,0});
+    		new int[]{boardDim, boardDim}, new int[]{0,0});
     ((HeatbugContext) context).addParameters();
     context.addValueLayer(heat);
     ((HeatbugContext) context).setLogger(new Logger((String) "Batch " + (Integer)params.getValue("BatchNumber"), "/Users/DrewHoo/Desktop/ABMDIC/Infochemical-Model/Heatbugs/data/"));

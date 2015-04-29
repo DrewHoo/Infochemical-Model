@@ -1,0 +1,3 @@
+Fix the North/South "bouncing" of the agents
+
+

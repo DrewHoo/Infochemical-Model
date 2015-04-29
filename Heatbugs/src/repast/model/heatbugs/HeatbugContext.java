@@ -23,8 +23,8 @@ import repast.simphony.context.DefaultContext;
  */
 public class HeatbugContext extends DefaultContext<Heatbug> {
   private Logger logger;
-  private ValueLayerDiffuser evaporator, propagator;
-  private int 		cleanupRate, boardXDim, boardYDim, nextInt,
+  private InfoChemDiffuser diffuser;
+  private int 		cleanupRate, boardDim, nextInt, congestionLimit, blockSize,
   					agentsPerTick, tick = 0, evaporationRate, propagationRate;
   private double 	pathSpread, emissionStrength, propagationFactor, 
   					evaporationFactor, minTolerance, maxTolerance, minimumStrength;
@@ -38,8 +38,8 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
   public void addValueLayer(ValueLayer valueLayer) {
     super.addValueLayer(valueLayer);
     heat = (IGridValueLayer) valueLayer;
-    propagator = new ValueLayerDiffuser((IGridValueLayer) valueLayer, 1, propagationFactor, false);
-    evaporator = new ValueLayerDiffuser((IGridValueLayer) valueLayer, 1 - evaporationFactor, 0, false);
+    diffuser = new InfoChemDiffuser((IGridValueLayer) valueLayer, 1 - evaporationFactor, propagationFactor, false);
+    diffuser.setMinValue(minimumStrength);
   }
 
   
@@ -57,16 +57,9 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
     BufferedGridValueLayer gridvl = (BufferedGridValueLayer)getValueLayer("Heat Layer");
     gridvl.swap();
     if (tick++ % evaporationRate == 0)
-    	evaporator.diffuse();
+    	diffuser.evaporate();
     if (tick % propagationRate == 0)
-    	propagator.diffuse();
-    if (tick % cleanupRate == 0)
-    	for (int i = 0; i < boardXDim; i++) {
-    		for (int j = 0; j < boardYDim; j++) {
-    			if (Double.compare(heat.get(i,j), minimumStrength) < 0)
-    				heat.set(0,i,j);
-    		}
-    	}
+    	diffuser.propagate();
   }
   
   @ScheduledMethod(start = 100, interval = 100, priority = 0)
@@ -81,14 +74,14 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	  for (int i = 0; i < agentsPerTick; i++) {
 	    	GridPoint destination, startPoint;
 	    	if (++nextInt % 2 == 0) {
-	    		int y = (int) (boardYDim*pathSpread);
-	    		int offset = (int) ((1-pathSpread)/2.0*boardYDim);
-	    		destination = new GridPoint(boardXDim - 1, (int)(Math.random()*y + offset)); //horizontal stream
+	    		int y = (int) (boardDim*pathSpread);
+	    		int offset = (int) ((1-pathSpread)/2.0*boardDim);
+	    		destination = new GridPoint(boardDim - 1, (int)(Math.random()*y + offset)); //horizontal stream
     			startPoint = new GridPoint(1, (int)(Math.random()*y + offset));
 	        } else {
-	    		int x = (int) (boardXDim*pathSpread);
-	    		int offset = (int) ((1-pathSpread)/2.0*boardXDim);
-				destination = new GridPoint((int)(Math.random()*x + offset), boardYDim - 1); //vertical stream
+	    		int x = (int) (boardDim*pathSpread);
+	    		int offset = (int) ((1-pathSpread)/2.0*boardDim);
+				destination = new GridPoint((int)(Math.random()*x + offset), boardDim - 1); //vertical stream
 	      	  	startPoint = new GridPoint((int)(Math.random()*x + offset), 1);
 	        }
 	        Heatbug bug = new Heatbug(
@@ -99,14 +92,14 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	   boolean moved = false;
 	   //Eventually need to update this so that only spots within path 
 	   //(as determined by pathSpread) are tried
-	   for (int j = 0; !moved && j < boardXDim*pathSpread; j++) {
+	   for (int j = 0; !moved && j < boardDim*pathSpread; j++) {
 	    	try {
 	    		moved = grid.moveTo(bug, startPoint.getX(), startPoint.getY());
 	    		if (!moved)
 		    		if (startPoint.getX() == 1) {
-		    			startPoint = new GridPoint(1, (int)(Math.random()*boardYDim));
+		    			startPoint = new GridPoint(1, (int)(Math.random()*boardDim));
 		    		} else {
-		    			startPoint = new GridPoint((int)(Math.random()*boardXDim), 1);
+		    			startPoint = new GridPoint((int)(Math.random()*boardDim), 1);
 		    		}
 	    	} catch (SpatialException e) {}
 	    }
@@ -127,13 +120,14 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	    propagationRate = (Integer)params.getValue("propagationRate");
 	    evaporationFactor = (Double)params.getValue("evaporationFactor");
 	    evaporationRate = (Integer)params.getValue("evaporationRate");
-	    boardXDim = (Integer)params.getValue("boardXDim");
-	    boardYDim = (Integer)params.getValue("boardYDim");
+	    boardDim = (Integer)params.getValue("boardDim");
 	    agentsPerTick = (Integer)params.getValue("agentsPerTick");
 	    nextInt = 0;
 	    pathSpread = (Double)params.getValue("pathSpread");
 	    grid = (Grid) this.getProjection("Bug Grid");
 	    cleanupRate = (Integer)params.getValue("cleanupRate");
+	    blockSize = (Integer)params.getValue("blockSize");
+	    congestionLimit = (Integer)params.getValue("congestionLimit");
   }
   
   public void setLogger(Logger logger) {
