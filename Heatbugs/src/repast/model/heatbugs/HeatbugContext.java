@@ -2,6 +2,9 @@
  * 
  */
 package repast.model.heatbugs;
+import java.util.ArrayList;
+
+import repast.simphony.context.DefaultContext;
 import repast.simphony.engine.environment.RunEnvironment;
 import repast.simphony.engine.schedule.ScheduledMethod;
 import repast.simphony.parameter.Parameters;
@@ -12,9 +15,6 @@ import repast.simphony.space.grid.GridPoint;
 import repast.simphony.valueLayer.BufferedGridValueLayer;
 import repast.simphony.valueLayer.IGridValueLayer;
 import repast.simphony.valueLayer.ValueLayer;
-import repast.simphony.valueLayer.ValueLayerDiffuser;
-
-import repast.simphony.context.DefaultContext;
 
 /**
  * Based on Nick Collier's heatbugs model
@@ -24,12 +24,13 @@ import repast.simphony.context.DefaultContext;
 public class HeatbugContext extends DefaultContext<Heatbug> {
   private Logger logger;
   private InfoChemDiffuser diffuser;
-  private int 		cleanupRate, boardDim, nextInt, congestionLimit, blockSize,
+  private int 		boardDim, nextInt, congestionLimit, blockSize,
   					agentsPerTick, tick = 0, evaporationRate, propagationRate;
   private double 	pathSpread, emissionStrength, propagationFactor, 
   					evaporationFactor, minTolerance, maxTolerance, minimumStrength;
   private repast.simphony.space.grid.Grid grid;
   private IGridValueLayer heat;
+  private ArrayList<ArrayList<ArrayList<Heatbug>>> blocks;
   
   /* (non-Javadoc)
    * @see repast.simphony.context.AbstractContext#addValueLayer(repast.simphony.valueLayer.ValueLayer)
@@ -50,7 +51,6 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
   /**
    * Swaps the buffered heat layers.
    */
-  @SuppressWarnings("unchecked")
 // priority = -1 so that the heatbugs action occurs first
   @ScheduledMethod(start = 1, interval = 1, priority = -1)
   public void aggregate() {
@@ -89,21 +89,45 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	        		(int)emissionStrength,
 	        		destination, this);
 	    	this.add(bug);
-	   boolean moved = false;
-	   //Eventually need to update this so that only spots within path 
-	   //(as determined by pathSpread) are tried
-	   for (int j = 0; !moved && j < boardDim*pathSpread; j++) {
-	    	try {
-	    		moved = grid.moveTo(bug, startPoint.getX(), startPoint.getY());
-	    		if (!moved)
-		    		if (startPoint.getX() == 1) {
-		    			startPoint = new GridPoint(1, (int)(Math.random()*boardDim));
-		    		} else {
-		    			startPoint = new GridPoint((int)(Math.random()*boardDim), 1);
-		    		}
-	    	} catch (SpatialException e) {}
-	    }
-	  }
+	    	boolean moved = false;
+	    	//Eventually need to update this so that only spots within path 
+	    	//(as determined by pathSpread) are tried
+		   for (int j = 0; !moved && j < boardDim*pathSpread; j++) {
+		    	try {
+		    		moved = grid.moveTo(bug, startPoint.getX(), startPoint.getY());
+		    		if (!moved)
+			    		if (startPoint.getX() == 1) {
+			    			startPoint = new GridPoint(1, (int)(Math.random()*boardDim));
+			    		} else {
+			    			startPoint = new GridPoint((int)(Math.random()*boardDim), 1);
+			    		}
+		    	} catch (SpatialException e) {}
+		   }
+		   addToBlock(bug, startPoint);
+	  }	
+  }
+
+  public void updateBlock(Heatbug h, GridPoint oldPt) {
+	  GridPoint loc = grid.getLocation(h);
+	  int x = loc.getX() * blockSize / boardDim;
+	  int y = loc.getY() * blockSize / boardDim;
+	  int x2 = oldPt.getX() * blockSize / boardDim;
+	  int y2 = oldPt.getY() * blockSize / boardDim;
+	  blocks.get(x2).get(y2).remove(h);
+	  blocks.get(x).get(y).add(h);
+  }
+  
+  public double getCongestion(int x, int y) {
+	  x = x* blockSize / boardDim;
+	  y = y* blockSize / boardDim;
+	  return (double) blocks.get(x).get(y).size() / (blockSize*blockSize);
+  }
+  
+  
+  public void addToBlock(Heatbug bug, GridPoint startPoint) {
+	  int x = startPoint.getX() * blockSize / boardDim;
+	  int y = startPoint.getY() * blockSize / boardDim;
+	  blocks.get(x).get(y).add(bug);
   }
   
 //  public void setDiffuser(ValueLayerDiffuser diffuser) {
@@ -125,9 +149,16 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
 	    nextInt = 0;
 	    pathSpread = (Double)params.getValue("pathSpread");
 	    grid = (Grid) this.getProjection("Bug Grid");
-	    cleanupRate = (Integer)params.getValue("cleanupRate");
 	    blockSize = (Integer)params.getValue("blockSize");
 	    congestionLimit = (Integer)params.getValue("congestionLimit");
+	    blocks = new ArrayList<ArrayList<ArrayList<Heatbug>>>();
+	    for (int i = 0; i < blockSize; i++) {
+		    blocks.add(new ArrayList<ArrayList<Heatbug>>());
+	    	for (int j = 0; j < blockSize; j++) {
+	    		blocks.get(i).add(new ArrayList<Heatbug>());
+	    	}
+	    }
+	    
   }
   
   public void setLogger(Logger logger) {

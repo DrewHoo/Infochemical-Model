@@ -20,7 +20,6 @@ import repast.simphony.valueLayer.MinGridFunction;
  * 
  * @author Drew Hoover
  */
-@SuppressWarnings("unused")
 public class Heatbug {
   private int tolerance, emissionStrength, lifetime, initialDistance, travelDistance;
   private long cumulativeTemperature;
@@ -60,32 +59,27 @@ public class Heatbug {
   @ScheduledMethod(start = 1, interval = 1, priority = 0)
   public void step() {
 	lifetime++;
+	HeatbugContext context = (HeatbugContext) ContextUtils.getContext(this);
     GridPoint pt = grid.getLocation(this);
     if (arrivedAtDestination(pt)) {
     	report();
-    	Context<Object> context = ContextUtils.getContext(this);
     	context.remove(this);
     	return;
     }
     cumulativeTemperature += heat.get(pt.getX(), pt.getY());
-//    the order of setting the heat and moveToClosestAcceptablePoint is probably important.
-    if (isItTooHot()) getOutOfTheHeat();
-    else moveToBestMoorePoint();
-    
-    GridPoint newPt = grid.getLocation(this);
-    heat.set(emissionStrength + heat.get(newPt.getX(), newPt.getY()), newPt.getX(), newPt.getY());
-    updateBlock(pt, newPt);
+    //find congestion of current block
+    //move based on odds adjusted by congestion amt
+    double congestion = context.getCongestion(pt.getX(), pt.getY());
+    //the order of setting the heat and moveToClosestAcceptablePoint is probably important.
+    if (Double.compare(congestion, Math.random()) < 0) {
+		if (isItTooHot()) getOutOfTheHeat();
+		else moveToBestMoorePoint();
+		GridPoint newPt = grid.getLocation(this);
+	    heat.set(emissionStrength + heat.get(newPt.getX(), newPt.getY()), newPt.getX(), newPt.getY());
+	    context.updateBlock(this, pt);
+    }
   }
-  
-  
-  	private void updateBlock(GridPoint oldPt, GridPoint newPt) {
-//  		if (oldPt.getX() == newPt.getX() 
-//  				&& oldPt.getY() == newPt.getY()
-//  				|| oldPt.getX() > boardDim - blockSize + 1
-//  				|| oldPt.getX() < blockSize - 1)
-//  			return;
-//  		if (oldPt.getX() % (blockSize - 1) < 2 && newPt.getX() % 
-  	}
+
   
 	/**
 	 * @param GridPoint pt is the current point to check against

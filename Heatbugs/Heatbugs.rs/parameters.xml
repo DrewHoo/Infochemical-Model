@@ -30,11 +30,6 @@
 						converter="repast.simphony.parameter.StringConverterFactory$DoubleConverter"
 									
 		/>
-		<parameter name="cleanupRate" displayName="Cleanup Rate" type="java.lang.Integer"
-						defaultValue="5"
-						isReadOnly="false"
-						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
-		/>
 				<parameter name="agentsPerTick" displayName="Agents Added Per Tick" type="java.lang.Integer" 
 						defaultValue="2"
 						isReadOnly="false" 
@@ -104,12 +99,12 @@
 		<parameter name="blockSize" displayName="Block Size" type="java.lang.Integer"
 						defaultValue="16"
 						isReadOnly="false"
-						converter="repast.simphony.parameter.StringConverterFactor$IntConverter"
+						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 		/>
 		<parameter name="congestionLimit" displayName="Congestion Limit" type="java.lang.Integer"
 						defaultValue="16"
 						isReadOnly="false"
-						converter="repast.simphony.parameter.StringConverterFactor$IntConverter"
+						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 		/>
 				
 		</parameters>
