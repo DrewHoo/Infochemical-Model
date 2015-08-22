@@ -32,7 +32,7 @@ public class HeatbugContext extends DefaultContext<Heatbug> {
   private IGridValueLayer heat;
   private ArrayList<ArrayList<ArrayList<Heatbug>>> blocks;
   
-  /* (non-Javadoc)
+  /* 
    * @see repast.simphony.context.AbstractContext#addValueLayer(repast.simphony.valueLayer.ValueLayer)
    */
   @Override

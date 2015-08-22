@@ -33,11 +33,11 @@ public class Logger {
 		info += s;
 	}
 	public void dumpInfo() {
-		try {
-			out.write(info.getBytes(), 0, info.getBytes().length);
-		} catch (IOException e) {
-			System.err.println(e);
-		}
+//		try {
+//			out.write(info.getBytes(), 0, info.getBytes().length);
+//		} catch (IOException e) {
+//			System.err.println(e);
+//		}
 	}
 	public String getDirectory() {
 		return directory;
